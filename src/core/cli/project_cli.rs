@@ -12,9 +12,9 @@ use indicatif::ProgressBar;
 
 use super::config::CliParserOptions;
 use super::theme::CliTheme;
-use crate::{
+use crate::core::{
     file_system::{copy_fs_objects, create_empty_directory},
-    templates::{config::RegisteredTemplate, get_templates},
+    registry::config::Template,
 };
 
 pub fn run_new_project_cli_args(options: &CliParserOptions) {
@@ -54,7 +54,7 @@ pub fn run_new_project_cli_args(options: &CliParserOptions) {
             format!("{}/{}", supplied_project_path.clone(), project_name)
         };
 
-    let registered_templates = get_templates(options.metadata.templates_meta);
+    let registered_templates = options.metadata.registry.get_templates();
     let template_names = {
         let mut names = Vec::new();
         registered_templates.iter().for_each(|entry| {
@@ -64,13 +64,13 @@ pub fn run_new_project_cli_args(options: &CliParserOptions) {
         names
     };
 
-    if let Some(template) = project_cmd.get_one::<String>("template") {
-        let contains_template = template_names.contains(template);
+    if let Some(template_name) = project_cmd.get_one::<String>("template") {
+        let contains_template = template_names.contains(template_name);
 
         let template_path = if contains_template {
-            format!("{}/{}", options.metadata.templates_meta.directory, template)
+            format!("{}/{}", options.metadata.registry.root_dir, template_name)
         } else {
-            template.to_string()
+            template_name.to_string()
         };
 
         if template_path == "none" {
@@ -79,11 +79,12 @@ pub fn run_new_project_cli_args(options: &CliParserOptions) {
             // Path does not exist and template does not exist in templates directory, so print an error and exit
             eprintln!(
                 "The path {} does not exist! Please supply a valid folder path or an a supported template.",
-                template
+                template_name
             );
             process::exit(1);
         } else {
-            let template_config = RegisteredTemplate::load_config(&template_path);
+            let template_config =
+                Template::load_config(&Template::new(&template_name, &template_path));
 
             // Copy the files if the template already exists in the templates source folder
             let copy_result =
@@ -161,7 +162,10 @@ pub fn run_new_project_cli_args(options: &CliParserOptions) {
                     .unwrap()
                     .to_string();
 
-                let template_config = RegisteredTemplate::load_config(&template_source);
+                let template_config = Template::load_config(&Template::new(
+                    &registered_templates[selection].name,
+                    &template_source,
+                ));
 
                 // Copy the files if the template already exists in the templates source folder
                 let copy_result = copy_fs_objects(

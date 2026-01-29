@@ -1,19 +1,29 @@
+use super::config::CliParserOptions;
+use super::project_cli::run_new_project_cli_args;
+use super::registry_cli::run_new_template_cli_args;
 use clap::{Arg, ArgAction, ArgMatches, Command, builder::BoolValueParser, command};
-use config::CliParserOptions;
-use project_cli::run_new_project_cli_args;
-use template_cli::run_new_template_cli_args;
-
-pub mod config;
-pub mod project_cli;
-pub mod template_cli;
-pub mod theme;
 
 pub fn register_cli_args() -> ArgMatches {
     let arg_matches =
         command!()
             .subcommand(
-                Command::new("new")
-                    .subcommand(
+                Command::new("create")
+                .subcommand(
+                    Command::new("registry")
+                        .about("Creates a new template registry")
+                        .arg(
+                            Arg::new("name")
+                                .short('n')
+                                .long("name")
+                                .help("The name of the project to be created")
+                        )
+                        .arg(
+                            Arg::new("path")
+                                .short('p')
+                                .long("path")
+                                .help("The path to the template registry")
+                        )
+                ).subcommand(
                         Command::new("project")
                             .about("Creates a new project")
                             .arg(
@@ -62,8 +72,12 @@ pub fn register_cli_args() -> ArgMatches {
                     )
                     .subcommand(
                         Command::new("template")
+                            .about("Creates a new template")
+                            .arg(Arg::new("registry").short('r').long("registry").help(
+                                "The registry to which the template should be created.",
+                            ))
                             .arg(Arg::new("source").short('s').long("src").help(
-                                "The source path for the template. It can be a local path or a URL",
+                                "The source path for the template. It can be a local path or a URL.",
                             ))
                             .arg(Arg::new("output").short('o').long("output").help(
                                 "Where in the templates directory to create the new template.",
@@ -122,7 +136,7 @@ pub fn register_cli_args() -> ArgMatches {
 }
 
 pub fn parse_cli_args(options: CliParserOptions) {
-    if let Some(new_cmd) = options.matches.subcommand_matches("new") {
+    if let Some(new_cmd) = options.matches.subcommand_matches("create") {
         if let Some(_) = new_cmd.subcommand_matches("project") {
             return run_new_project_cli_args(&CliParserOptions {
                 metadata: &options.metadata,

@@ -1,9 +1,10 @@
 use clap::ArgMatches;
 
-use crate::templates::config::TemplatesMetadata;
+use crate::core::registry::config::{Registry, RegistryManager};
 
 pub struct CliMetadata<'a> {
-    pub templates_meta: &'a TemplatesMetadata,
+    pub registry: &'a Registry,
+    pub registry_manager: &'a RegistryManager,
 }
 
 pub struct CliParserOptions<'a> {

@@ -4,13 +4,13 @@ use console::{Emoji, style};
 use dialoguer::{Input, Select};
 use whoami;
 
-use crate::templates::config::CreatedTemplateConfig;
+use crate::core::registry::config::{Template, TemplateConfig};
 
 use super::{config::CliParserOptions, theme::CliTheme};
 
 pub fn run_new_template_cli_args(options: &CliParserOptions) {
     let template_cmd = options.matches.subcommand_matches("template").unwrap();
-    let templates_directory = &options.metadata.templates_meta.directory;
+    let templates_directory = &options.metadata.registry.root_dir;
 
     let template_name = if let Some(name) = template_cmd.get_one::<String>("name") {
         name
@@ -174,9 +174,8 @@ pub fn run_new_template_cli_args(options: &CliParserOptions) {
         }
     };
 
-    let template_config = CreatedTemplateConfig {
+    let template_config = TemplateConfig {
         name: template_name.clone(),
-        target: String::from("project"),
         author: template_author.clone(),
         version: template_version.clone(),
         description: template_description.clone(),
@@ -185,12 +184,13 @@ pub fn run_new_template_cli_args(options: &CliParserOptions) {
         scripts: template_scripts,
     };
 
-    let _ = CreatedTemplateConfig::create_template(
-        &template_output,
-        &template_source,
-        &template_config,
-        &options.metadata.templates_meta,
-    );
+    let template = Template::new(template_name, template_output);
+
+    let _ =
+        options
+            .metadata
+            .registry
+            .create_template(&template, &template_source, &template_config);
 
     println!(
         "\n{} {}",
