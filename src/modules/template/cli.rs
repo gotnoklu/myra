@@ -1,23 +1,21 @@
+use super::types::Template;
+use crate::core::printer::print_success_text;
+use crate::modules::core::{cli_theme::CliTheme, get_constants};
+use crate::modules::registry::types::Registry;
+use clap::ArgMatches;
+use dialoguer::{Input, Select};
 use std::path;
 
-use console::{Emoji, style};
-use dialoguer::{Input, Select};
-use whoami;
-
-use crate::core::registry::config::{Template, TemplateConfig};
-
-use super::{config::CliParserOptions, theme::CliTheme};
-
-pub fn run_new_template_cli_args(options: &CliParserOptions) {
-    let template_cmd = options.matches.subcommand_matches("template").unwrap();
-    let templates_directory = &options.metadata.registry.root_dir;
+pub fn handle_create_new_template(matches: &ArgMatches) {
+    let template_cmd = matches.subcommand_matches("template").unwrap();
+    let constants = get_constants();
 
     let template_name = if let Some(name) = template_cmd.get_one::<String>("name") {
         name
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
             .with_prompt("Enter the template's name (Required)")
-            .with_post_completion_text("Template Name")
+            .with_post_completion_text("Template name")
             .allow_empty(false)
             .interact()
             .unwrap();
@@ -69,66 +67,35 @@ pub fn run_new_template_cli_args(options: &CliParserOptions) {
             &input.to_string()
         };
 
-    let template_exclude_config: bool =
-        if let Some(exclude_config) = template_cmd.get_one::<bool>("exclude_config") {
-            exclude_config.clone()
+    println!("Git init: {:?}", template_cmd.get_one::<bool>("init_git"));
+
+    let mut initialise_git: bool = false;
+    if let Some(value) = template_cmd.get_one::<bool>("init_git") {
+        if value == &true {
+            initialise_git = value.clone();
         } else {
             let input: usize = Select::with_theme(&CliTheme::default())
-                .with_prompt("Ignore the template's config when creating project")
+                .with_prompt("Initialise Git when creating project")
                 .default(0)
                 .items(&vec![String::from("Yes"), String::from("No")])
                 .interact()
                 .unwrap();
 
-            input == 0
-        };
-
-    let template_excluded_paths: Vec<String> =
-        if let Some(excluded_paths) = template_cmd.get_many::<String>("exclude_paths") {
-            excluded_paths
-                .map(|p| String::from(p))
-                .collect::<Vec<String>>()
-        } else {
-            let input: String = Input::with_theme(&CliTheme::default())
-                .with_prompt("Ignore certain paths when copying the template")
-                .with_post_completion_text("Excluded Template Paths")
-                .allow_empty(true)
-                .interact()
-                .unwrap();
-
-            if input == "" {
-                vec![]
-            } else {
-                input.split(",").map(|i| String::from(i)).collect()
-            }
-        };
-
-    let template_scripts: Vec<String> =
-        if let Some(scripts) = template_cmd.get_many::<String>("scripts") {
-            scripts.map(|p| String::from(p)).collect::<Vec<String>>()
-        } else {
-            let input: String = Input::with_theme(&CliTheme::default())
-                .with_prompt("Add initialisation scripts for the project separated by a comma")
-                .with_post_completion_text("Initialisation Scripts")
-                .allow_empty(true)
-                .interact()
-                .unwrap();
-
-            if input == "" {
-                vec![]
-            } else {
-                input.split(",").map(|i| String::from(i)).collect()
-            }
-        };
+            initialise_git = input == 0;
+        }
+    }
 
     let template_output = if let Some(output) = template_cmd.get_one::<String>("output") {
-        &path::absolute(format!("{}/{}", templates_directory, output))
+        &path::absolute(format!("{}/{}", constants.myra_templates_dir, output))
             .unwrap()
             .to_str()
             .unwrap()
             .to_string()
     } else {
-        let default_path = String::from(format!("{}/{}", templates_directory, template_name));
+        let default_path = String::from(format!(
+            "{}/{}",
+            constants.myra_templates_dir, template_name
+        ));
 
         let input: String = Input::with_theme(&CliTheme::default())
             .with_prompt("Where in the templates directory to create it")
@@ -141,7 +108,7 @@ pub fn run_new_template_cli_args(options: &CliParserOptions) {
         if input == default_path {
             &input.to_string()
         } else {
-            &path::absolute(format!("{}/{}", templates_directory, input))
+            &path::absolute(format!("{}/{}", constants.myra_templates_dir, input))
                 .unwrap()
                 .to_str()
                 .unwrap()
@@ -174,27 +141,18 @@ pub fn run_new_template_cli_args(options: &CliParserOptions) {
         }
     };
 
-    let template_config = TemplateConfig {
-        name: template_name.clone(),
-        author: template_author.clone(),
-        version: template_version.clone(),
-        description: template_description.clone(),
-        exclude_config: template_exclude_config,
-        exclude_paths: template_excluded_paths,
-        scripts: template_scripts,
+    let template = Template {
+        name: template_name.to_string(),
+        version: template_version.to_string(),
+        author: template_author.to_string(),
+        description: template_description.to_string(),
+        path: template_output.to_string(),
+        initialise_git: initialise_git,
     };
 
-    let template = Template::new(template_name, template_output);
+    let registry = Registry::new("templates".to_string(), constants.myra_templates_dir);
 
-    let _ =
-        options
-            .metadata
-            .registry
-            .create_template(&template, &template_source, &template_config);
+    let _ = registry.add_template(&template, &template_source);
 
-    println!(
-        "\n{} {}",
-        style(Emoji("🚀", ":-)")).green().bright(),
-        style("Template created!").yellow().bold(),
-    );
+    print_success_text("Template created!");
 }

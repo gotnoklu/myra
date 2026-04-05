@@ -8,6 +8,7 @@ description = "A simple project manager built with Rust"
 clap = { version = "4.5.37", features = ["cargo"] }
 console = "0.15.11"
 dialoguer = { version = "0.11.0", features = ["password"] }
+git2 = "0.20.4"
 indicatif = "0.17.11"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
