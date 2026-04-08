@@ -1,7 +1,7 @@
 use console::style;
 
 pub fn print_blocked_text(text: &str, message: &str) {
-    println!("\n\x1b[30;42m {} \x1b[0m {}\n", text, style(message));
+    println!("\n\x1b[30;42m {} \x1b[0m {}\n", text, style(message).dim());
 }
 
 pub fn print_action(action: &str, message: &str) {
