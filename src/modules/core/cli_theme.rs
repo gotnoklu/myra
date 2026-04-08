@@ -46,15 +46,15 @@ impl Default for CliTheme {
     fn default() -> Self {
         CliTheme {
             defaults_style: Style::new().for_stderr().cyan(),
-            prompt_style: Style::new().for_stderr().bold(),
+            prompt_style: Style::new().for_stderr(),
             prompt_prefix: style(Emoji("❓", "?").to_string())
                 .for_stderr()
                 .yellow()
                 .bright(),
             prompt_suffix: style("›".to_string()).for_stderr().black().bright(),
-            success_prefix: style(Emoji("✅", "✔").to_string()).for_stderr().green(),
+            success_prefix: style("✔".to_string()).for_stderr().green(),
             success_suffix: style("›".to_string()).for_stderr().green().bright(),
-            error_prefix: style(Emoji("❌", "✘").to_string()).for_stderr().red(),
+            error_prefix: style("✖".to_string()).for_stderr().red(),
             error_style: Style::new().for_stderr().red(),
             hint_style: Style::new().for_stderr().black().bright(),
             values_style: Style::new().for_stderr().green(),
