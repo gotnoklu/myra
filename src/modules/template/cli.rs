@@ -2,9 +2,77 @@ use super::types::Template;
 use crate::core::printer::print_success_text;
 use crate::modules::core::{cli_theme::CliTheme, get_constants};
 use crate::modules::registry::types::Registry;
-use clap::ArgMatches;
+use clap::{Arg, ArgMatches, Command, builder::BoolValueParser};
 use dialoguer::{Input, Select};
 use std::path;
+
+pub fn register_template_cli_args() -> Command {
+    Command::new("templates")
+        .about("Commands for the template resource")
+        .subcommand(
+            Command::new("add")
+                .about("Creates a new template")
+                .arg(
+                    Arg::new("name")
+                        .short('n')
+                        .long("name")
+                        .help("The name of the template to be created"),
+                )
+                .arg(
+                    Arg::new("description")
+                        .short('d')
+                        .long("desc")
+                        .help("The description of the template"),
+                ).arg(
+                    Arg::new("version")
+                        .short('v')
+                        .long("version")
+                        .help("The version of the template"),
+                ).arg(
+                    Arg::new("init_git_repo")
+                        .short('g')
+                        .long("git")
+                        .help("Initialise a Git repo for the template")
+                        .num_args(0)
+                        .value_parser(BoolValueParser::new()),
+                ).arg(
+                    Arg::new("source")
+                        .short('s')
+                        .long("source")
+                        .help("The path to the directory to be used as the template"),
+                ),
+        ).subcommand(
+            Command::new("rm")
+                .about("Removes an existing template")
+                .arg(
+                    Arg::new("name")
+                        .short('n')
+                        .long("name")
+                        .help("The name of the template to be deleted"),
+                )
+
+        ).subcommand(
+            Command::new("cp")
+                .about("Copies an existing template into a directory")
+                .arg(
+                    Arg::new("name")
+                        .short('n')
+                        .long("name")
+                        .help("The name of the template to be copied"),
+                ).arg(
+                    Arg::new("destination")
+                        .short('d')
+                        .long("dest")
+                        .help("The destination where the template will be copied"),
+                )
+
+        ).subcommand(
+            Command::new("list")
+                .about("Lists all templates")
+        )
+}
+
+pub fn match_template_cli_args(matches: &ArgMatches) {}
 
 pub fn handle_create_new_template(matches: &ArgMatches) {
     let template_cmd = matches.subcommand_matches("template").unwrap();
@@ -31,7 +99,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
             .with_post_completion_text("Template Author")
             .allow_empty(true)
             .show_default(true)
-            .default(String::from(whoami::realname()))
+            .default(whoami::realname())
             .interact()
             .unwrap();
 
@@ -72,12 +140,12 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
     let mut initialise_git: bool = false;
     if let Some(value) = template_cmd.get_one::<bool>("init_git") {
         if value == &true {
-            initialise_git = value.clone();
+            initialise_git = *value;
         } else {
             let input: usize = Select::with_theme(&CliTheme::default())
                 .with_prompt("Initialise Git when creating project")
                 .default(0)
-                .items(&vec![String::from("Yes"), String::from("No")])
+                .items(&[String::from("Yes"), String::from("No")])
                 .interact()
                 .unwrap();
 
@@ -92,10 +160,10 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
             .unwrap()
             .to_string()
     } else {
-        let default_path = String::from(format!(
+        let default_path = format!(
             "{}/{}",
             constants.myra_templates_dir, template_name
-        ));
+        );
 
         let input: String = Input::with_theme(&CliTheme::default())
             .with_prompt("Where in the templates directory to create it")
@@ -117,7 +185,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
     };
 
     let template_source = if let Some(source) = template_cmd.get_one::<String>("source") {
-        if source == "" {
+        if source.is_empty() {
             &source.to_string()
         } else {
             &path::absolute(source)
@@ -134,7 +202,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
             .interact()
             .unwrap();
 
-        if input == "" {
+        if input.is_empty() {
             &input.to_string()
         } else {
             &path::absolute(input).unwrap().to_str().unwrap().to_string()
@@ -147,12 +215,12 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         author: template_author.to_string(),
         description: template_description.to_string(),
         path: template_output.to_string(),
-        initialise_git: initialise_git,
+        initialise_git,
     };
 
     let registry = Registry::new("templates".to_string(), constants.myra_templates_dir);
 
-    let _ = registry.add_template(&template, &template_source);
+    let _ = registry.add_template(&template, template_source);
 
     print_success_text("Template created!");
 }

@@ -16,7 +16,7 @@ impl Template {
     pub fn create_config(&self, config_name: String) -> Result<(), std::io::Error> {
         let file_writer = fs::File::create(path::Path::new(&self.path).join(config_name)).unwrap();
 
-        let _ = serde_json::to_writer(file_writer, self).unwrap();
+        serde_json::to_writer(file_writer, self).unwrap();
 
         Ok(())
     }
