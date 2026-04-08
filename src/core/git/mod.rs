@@ -20,7 +20,7 @@ pub struct GitRepo {
 impl GitRepo {
     pub fn init(dir_path: Option<&str>, default_branch: Option<&str>) -> GitRepo {
         let repo_path = dir_path.unwrap_or(".");
-        let repo = match Repository::init(&repo_path) {
+        let repo = match Repository::init(repo_path) {
             Ok(repo) => repo,
             Err(err) => panic!(
                 "Failed to initialise repo '{}'. Error: {:?}",
@@ -220,7 +220,7 @@ impl GitRepo {
         }
 
         let fetch_head = &self.repo.find_reference("FETCH_HEAD")?;
-        let annotated_commit = self.repo.reference_to_annotated_commit(&fetch_head)?;
+        let annotated_commit = self.repo.reference_to_annotated_commit(fetch_head)?;
 
         Ok(annotated_commit)
     }
@@ -258,7 +258,7 @@ impl GitRepo {
         fetch_commit: &git2::AnnotatedCommit,
     ) -> Result<(), git2::Error> {
         // 1. do a merge analysis
-        let analysis = &self.repo.merge_analysis(&[&fetch_commit])?;
+        let analysis = &self.repo.merge_analysis(&[fetch_commit])?;
 
         // 2. Do the appropriate merge
         if analysis.0.is_fast_forward() {
@@ -269,7 +269,7 @@ impl GitRepo {
 
             match reference {
                 Ok(mut r) => {
-                    GitRepo::fast_forward(&self, &mut r, &fetch_commit)?;
+                    GitRepo::fast_forward(self, &mut r, fetch_commit)?;
                 }
                 Err(_) => {
                     // The branch doesn't exist so just set the reference to the
@@ -295,7 +295,7 @@ impl GitRepo {
             let head_commit = self
                 .repo
                 .reference_to_annotated_commit(&self.repo.head()?)?;
-            normal_merge(&self.repo, &head_commit, &fetch_commit)?;
+            normal_merge(&self.repo, &head_commit, fetch_commit)?;
         } else {
             println!("Nothing to do...");
         }
@@ -309,8 +309,8 @@ impl GitRepo {
         if let Some(GitRepoRemote { name, .. }) = remote {
             let branch_name = branch_name.unwrap();
             let mut repo_remote = repo.find_remote(name.as_str())?;
-            let fetch_commit = GitRepo::fetch(&self, &[branch_name], &mut repo_remote)?;
-            GitRepo::merge_into_local(&self, &branch_name, &fetch_commit)
+            let fetch_commit = GitRepo::fetch(self, &[branch_name], &mut repo_remote)?;
+            GitRepo::merge_into_local(self, branch_name, &fetch_commit)
         } else {
             panic!("No remote has been set. Please set a remote before proceeding.")
         }
@@ -318,9 +318,9 @@ impl GitRepo {
 
     pub fn push(&self) {}
 
-    pub fn sync(&self) -> () {
-        GitRepo::pull(&self, Some(self.current_branch.as_ref().unwrap().as_str()));
-        GitRepo::push(&self);
+    pub fn sync(&self) {
+        GitRepo::pull(self, Some(self.current_branch.as_ref().unwrap().as_str()));
+        GitRepo::push(self);
     }
 }
 

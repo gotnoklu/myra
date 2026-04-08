@@ -25,8 +25,8 @@ impl Registry {
             process::exit(1);
         }
 
-        if source == "" {
-            let _ = fs::create_dir(&template.path).unwrap();
+        if source.is_empty() {
+            fs::create_dir(&template.path).unwrap();
         } else {
             let _ = copy_fs_objects(source, &template.path, &vec![]);
         }

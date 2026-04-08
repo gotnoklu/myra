@@ -34,7 +34,7 @@ pub fn copy_fs_objects<From: AsRef<Path>, To: AsRef<Path>>(
             continue;
         };
         if object_type.is_dir() {
-            copy_fs_objects(object_path, to.as_ref().join(entry.file_name()), &exclude)?;
+            copy_fs_objects(object_path, to.as_ref().join(entry.file_name()), exclude)?;
         } else {
             fs::copy(object_path, to.as_ref().join(entry.file_name()))?;
         }
