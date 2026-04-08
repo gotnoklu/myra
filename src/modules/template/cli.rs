@@ -1,5 +1,5 @@
 use super::types::Template;
-use crate::core::printer::print_success_text;
+use crate::core::printer::{print_action, print_blocked_text, print_success_text};
 use crate::modules::core::{cli_theme::CliTheme, get_constants};
 use crate::modules::registry::types::Registry;
 use clap::{Arg, ArgMatches, Command, builder::BoolValueParser};
@@ -29,6 +29,12 @@ pub fn register_template_cli_args() -> Command {
                         .short('v')
                         .long("version")
                         .help("The version of the template"),
+                )
+                .arg(
+                    Arg::new("author")
+                        .short('a')
+                        .long("author")
+                        .help("The author of the template"),
                 )
                 .arg(
                     Arg::new("init_git_repo")
@@ -82,6 +88,8 @@ pub fn match_template_cli_args(matches: &ArgMatches) {
 
 pub fn handle_create_new_template(matches: &ArgMatches) {
     let constants = get_constants();
+
+    print_blocked_text("myra", "Create a new template");
 
     let template_name = if let Some(name) = matches.get_one::<String>("name") {
         name
@@ -139,10 +147,9 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    println!("Git init: {:?}", matches.get_one::<bool>("init_git"));
-
     let mut initialise_git: bool = false;
-    if let Some(value) = matches.get_one::<bool>("init_git") {
+
+    if let Some(value) = matches.get_one::<bool>("init_git_repo") {
         if value == &true {
             initialise_git = *value;
         } else {
@@ -157,33 +164,14 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         }
     }
 
-    let template_output = if let Some(output) = matches.get_one::<String>("output") {
-        &path::absolute(format!("{}/{}", constants.myra_templates_dir, output))
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string()
-    } else {
-        let default_path = format!("{}/{}", constants.myra_templates_dir, template_name);
-
-        let input: String = Input::with_theme(&CliTheme::default())
-            .with_prompt("Where in the templates directory to create it")
-            .with_post_completion_text("Template Output")
-            .show_default(true)
-            .default(default_path.clone())
-            .interact()
-            .unwrap();
-
-        if input == default_path {
-            &input.to_string()
-        } else {
-            &path::absolute(format!("{}/{}", constants.myra_templates_dir, input))
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string()
-        }
-    };
+    let template_output = &path::absolute(format!(
+        "{}/{}",
+        constants.myra_templates_dir, template_name
+    ))
+    .unwrap()
+    .to_str()
+    .unwrap()
+    .to_string();
 
     let template_source = if let Some(source) = matches.get_one::<String>("source") {
         if source.is_empty() {
@@ -197,9 +185,10 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         }
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
-            .with_prompt("The folder to be used when creating the template")
+            .with_prompt("The folder to use when creating the template")
             .with_post_completion_text("Template Source")
             .allow_empty(true)
+            .default("./".to_string())
             .interact()
             .unwrap();
 
