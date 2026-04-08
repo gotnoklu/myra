@@ -74,7 +74,11 @@ pub fn register_template_cli_args() -> Command {
         .subcommand(Command::new("list").about("Lists all templates"))
 }
 
-pub fn match_template_cli_args(matches: &ArgMatches) {}
+pub fn match_template_cli_args(matches: &ArgMatches) {
+    if matches.subcommand_matches("add").is_some() {
+        handle_create_new_template(&matches);
+    }
+}
 
 pub fn handle_create_new_template(matches: &ArgMatches) {
     let template_cmd = matches.subcommand_matches("template").unwrap();

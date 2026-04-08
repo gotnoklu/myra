@@ -67,7 +67,11 @@ pub fn register_project_cli_args() -> Command {
         .subcommand(Command::new("list").about("Lists all projects"))
 }
 
-pub fn match_project_cli_args(matches: &ArgMatches) {}
+pub fn match_project_cli_args(matches: &ArgMatches) {
+    if matches.subcommand_matches("add").is_some() {
+        handle_create_new_project(&matches);
+    }
+}
 
 pub fn handle_create_new_project(matches: &ArgMatches) {
     let project_cmd = matches.subcommand_matches("project").unwrap();
