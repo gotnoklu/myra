@@ -1,22 +1,74 @@
 use std::{
     fs,
-    io::{self, Write},
     path::{self, PathBuf},
-    process::{self, Command},
+    process::{self},
     time::Duration,
 };
 
-use clap::ArgMatches;
+use clap::{Arg, ArgMatches, Command, builder::BoolValueParser};
 use console::{Emoji, style};
 use dialoguer::{Input, Select};
 use indicatif::ProgressBar;
 
-use crate::modules::{core::cli_theme::CliTheme, registry::types::Registry, template};
+use crate::modules::{core::cli_theme::CliTheme, registry::types::Registry};
 use crate::{
     core::file_system::{copy_fs_objects, create_empty_directory},
     modules::core::get_constants,
     modules::template::types::Template,
 };
+
+pub fn register_project_cli_args() -> Command {
+    Command::new("projects")
+        .about("Commands for the project resource")
+        .subcommand(
+            Command::new("add")
+                .about("Creates a new template")
+                .arg(
+                    Arg::new("template")
+                        .short('t')
+                        .long("template")
+                        .help("The name of the template used to initialise this project"),
+                )
+                .arg(
+                    Arg::new("name")
+                        .short('n')
+                        .long("name")
+                        .help("The name of the project to be created"),
+                )
+                .arg(
+                    Arg::new("description")
+                        .short('d')
+                        .long("desc")
+                        .help("The description of the project"),
+                ).arg(
+                    Arg::new("version")
+                        .short('v')
+                        .long("version")
+                        .help("The version of the project"),
+                ).arg(
+                    Arg::new("init_git_repo")
+                        .short('g')
+                        .long("git")
+                        .help("Initialise a Git repo for the project")
+                        .num_args(0)
+                        .value_parser(BoolValueParser::new()),
+                ),
+        ).subcommand(
+            Command::new("rm")
+                .about("Removes an existing project")
+                .arg(
+                    Arg::new("name")
+                        .short('n')
+                        .long("name")
+                        .help("The name of the project to be deleted"),
+                )
+        ).subcommand(
+            Command::new("list")
+                .about("Lists all projects")
+        )
+}
+
+pub fn match_project_cli_args(matches: &ArgMatches) {}
 
 pub fn handle_create_new_project(matches: &ArgMatches) {
     let project_cmd = matches.subcommand_matches("project").unwrap();
@@ -149,7 +201,7 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
         // Show multiselect prompts
         let templates = template_names;
 
-        if templates.len() > 0 {
+        if !templates.is_empty() {
             let selection = Select::with_theme(&CliTheme::default())
                 .with_prompt("Select project template")
                 .default(0)
