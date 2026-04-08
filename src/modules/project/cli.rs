@@ -40,12 +40,14 @@ pub fn register_project_cli_args() -> Command {
                         .short('d')
                         .long("desc")
                         .help("The description of the project"),
-                ).arg(
+                )
+                .arg(
                     Arg::new("version")
                         .short('v')
                         .long("version")
                         .help("The version of the project"),
-                ).arg(
+                )
+                .arg(
                     Arg::new("init_git_repo")
                         .short('g')
                         .long("git")
@@ -53,19 +55,16 @@ pub fn register_project_cli_args() -> Command {
                         .num_args(0)
                         .value_parser(BoolValueParser::new()),
                 ),
-        ).subcommand(
-            Command::new("rm")
-                .about("Removes an existing project")
-                .arg(
-                    Arg::new("name")
-                        .short('n')
-                        .long("name")
-                        .help("The name of the project to be deleted"),
-                )
-        ).subcommand(
-            Command::new("list")
-                .about("Lists all projects")
         )
+        .subcommand(
+            Command::new("rm").about("Removes an existing project").arg(
+                Arg::new("name")
+                    .short('n')
+                    .long("name")
+                    .help("The name of the project to be deleted"),
+            ),
+        )
+        .subcommand(Command::new("list").about("Lists all projects"))
 }
 
 pub fn match_project_cli_args(matches: &ArgMatches) {}

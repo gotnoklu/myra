@@ -1,5 +1,5 @@
-use crate::modules::project::cli::{register_project_cli_args, match_project_cli_args};
-use crate::modules::template::cli::{register_template_cli_args, match_template_cli_args};
+use crate::modules::project::cli::{match_project_cli_args, register_project_cli_args};
+use crate::modules::template::cli::{match_template_cli_args, register_template_cli_args};
 
 use clap::{ArgMatches, command};
 

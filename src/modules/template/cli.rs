@@ -23,25 +23,29 @@ pub fn register_template_cli_args() -> Command {
                         .short('d')
                         .long("desc")
                         .help("The description of the template"),
-                ).arg(
+                )
+                .arg(
                     Arg::new("version")
                         .short('v')
                         .long("version")
                         .help("The version of the template"),
-                ).arg(
+                )
+                .arg(
                     Arg::new("init_git_repo")
                         .short('g')
                         .long("git")
                         .help("Initialise a Git repo for the template")
                         .num_args(0)
                         .value_parser(BoolValueParser::new()),
-                ).arg(
+                )
+                .arg(
                     Arg::new("source")
                         .short('s')
                         .long("source")
                         .help("The path to the directory to be used as the template"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             Command::new("rm")
                 .about("Removes an existing template")
                 .arg(
@@ -49,9 +53,9 @@ pub fn register_template_cli_args() -> Command {
                         .short('n')
                         .long("name")
                         .help("The name of the template to be deleted"),
-                )
-
-        ).subcommand(
+                ),
+        )
+        .subcommand(
             Command::new("cp")
                 .about("Copies an existing template into a directory")
                 .arg(
@@ -59,17 +63,15 @@ pub fn register_template_cli_args() -> Command {
                         .short('n')
                         .long("name")
                         .help("The name of the template to be copied"),
-                ).arg(
+                )
+                .arg(
                     Arg::new("destination")
                         .short('d')
                         .long("dest")
                         .help("The destination where the template will be copied"),
-                )
-
-        ).subcommand(
-            Command::new("list")
-                .about("Lists all templates")
+                ),
         )
+        .subcommand(Command::new("list").about("Lists all templates"))
 }
 
 pub fn match_template_cli_args(matches: &ArgMatches) {}
@@ -160,10 +162,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
             .unwrap()
             .to_string()
     } else {
-        let default_path = format!(
-            "{}/{}",
-            constants.myra_templates_dir, template_name
-        );
+        let default_path = format!("{}/{}", constants.myra_templates_dir, template_name);
 
         let input: String = Input::with_theme(&CliTheme::default())
             .with_prompt("Where in the templates directory to create it")
