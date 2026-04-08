@@ -75,16 +75,15 @@ pub fn register_template_cli_args() -> Command {
 }
 
 pub fn match_template_cli_args(matches: &ArgMatches) {
-    if matches.subcommand_matches("add").is_some() {
-        handle_create_new_template(&matches);
+    if let Some(matched) = matches.subcommand_matches("add") {
+        handle_create_new_template(&matched);
     }
 }
 
 pub fn handle_create_new_template(matches: &ArgMatches) {
-    let template_cmd = matches.subcommand_matches("template").unwrap();
     let constants = get_constants();
 
-    let template_name = if let Some(name) = template_cmd.get_one::<String>("name") {
+    let template_name = if let Some(name) = matches.get_one::<String>("name") {
         name
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
@@ -97,7 +96,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    let template_author = if let Some(author) = template_cmd.get_one::<String>("author") {
+    let template_author = if let Some(author) = matches.get_one::<String>("author") {
         author
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
@@ -112,7 +111,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    let template_version = if let Some(version) = template_cmd.get_one::<String>("version") {
+    let template_version = if let Some(version) = matches.get_one::<String>("version") {
         version
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
@@ -127,24 +126,23 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    let template_description =
-        if let Some(description) = template_cmd.get_one::<String>("description") {
-            description
-        } else {
-            let input: String = Input::with_theme(&CliTheme::default())
-                .with_prompt("Enter the template's description")
-                .with_post_completion_text("Template Description")
-                .allow_empty(true)
-                .interact()
-                .unwrap();
+    let template_description = if let Some(description) = matches.get_one::<String>("description") {
+        description
+    } else {
+        let input: String = Input::with_theme(&CliTheme::default())
+            .with_prompt("Enter the template's description")
+            .with_post_completion_text("Template Description")
+            .allow_empty(true)
+            .interact()
+            .unwrap();
 
-            &input.to_string()
-        };
+        &input.to_string()
+    };
 
-    println!("Git init: {:?}", template_cmd.get_one::<bool>("init_git"));
+    println!("Git init: {:?}", matches.get_one::<bool>("init_git"));
 
     let mut initialise_git: bool = false;
-    if let Some(value) = template_cmd.get_one::<bool>("init_git") {
+    if let Some(value) = matches.get_one::<bool>("init_git") {
         if value == &true {
             initialise_git = *value;
         } else {
@@ -159,7 +157,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         }
     }
 
-    let template_output = if let Some(output) = template_cmd.get_one::<String>("output") {
+    let template_output = if let Some(output) = matches.get_one::<String>("output") {
         &path::absolute(format!("{}/{}", constants.myra_templates_dir, output))
             .unwrap()
             .to_str()
@@ -187,7 +185,7 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
         }
     };
 
-    let template_source = if let Some(source) = template_cmd.get_one::<String>("source") {
+    let template_source = if let Some(source) = matches.get_one::<String>("source") {
         if source.is_empty() {
             &source.to_string()
         } else {

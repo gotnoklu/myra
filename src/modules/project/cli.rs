@@ -68,16 +68,15 @@ pub fn register_project_cli_args() -> Command {
 }
 
 pub fn match_project_cli_args(matches: &ArgMatches) {
-    if matches.subcommand_matches("add").is_some() {
-        handle_create_new_project(&matches);
+    if let Some(matched) = matches.subcommand_matches("add") {
+        handle_create_new_project(&matched);
     }
 }
 
 pub fn handle_create_new_project(matches: &ArgMatches) {
-    let project_cmd = matches.subcommand_matches("project").unwrap();
     let constants = get_constants();
 
-    let project_name = if let Some(name) = project_cmd.get_one::<String>("name") {
+    let project_name = if let Some(name) = matches.get_one::<String>("name") {
         name
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
@@ -90,7 +89,7 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    let supplied_project_path = if let Some(output) = project_cmd.get_one::<String>("output") {
+    let supplied_project_path = if let Some(output) = matches.get_one::<String>("output") {
         output
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
@@ -123,7 +122,7 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
         names
     };
 
-    if let Some(template_name) = project_cmd.get_one::<String>("template") {
+    if let Some(template_name) = matches.get_one::<String>("template") {
         let contains_template = template_names.contains(template_name);
 
         let template_path = if contains_template {
