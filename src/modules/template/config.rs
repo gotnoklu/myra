@@ -1,4 +1,6 @@
-use super::types::Template;
+use crate::modules::template::types::{TemplateActionsConfig, TemplatePipelinesConfig};
+
+use super::types::{Template, TemplateConfig};
 use std::{fs, io::Write, path};
 
 impl Template {
@@ -13,10 +15,32 @@ impl Template {
         }
     }
 
-    pub fn create_config(&self, config_name: String) -> Result<(), std::io::Error> {
-        let file_writer = fs::File::create(path::Path::new(&self.path).join(config_name)).unwrap();
+    pub fn create_config(
+        &self,
+        config_name: String,
+        config_path: Option<String>,
+    ) -> Result<(), std::io::Error> {
+        let file_writer = if let Some(config_path) = config_path {
+            fs::File::create(path::Path::new(&config_path).join(config_name)).unwrap()
+        } else {
+            fs::File::create(path::Path::new(&self.path).join(config_name)).unwrap()
+        };
 
-        serde_json::to_writer(file_writer, self).unwrap();
+        serde_json::to_writer(
+            file_writer,
+            &TemplateConfig {
+                name: self.name.clone(),
+                author: self.author.clone(),
+                version: self.version.clone(),
+                description: self.description.clone(),
+                workspaces: vec![],
+                actions: TemplateActionsConfig {
+                    install: "".to_string(),
+                },
+                pipelines: TemplatePipelinesConfig {},
+            },
+        )
+        .unwrap();
 
         Ok(())
     }
@@ -29,17 +53,24 @@ impl Template {
         }
 
         let file = fs::File::open(&path).unwrap();
-        let config: Template = serde_json::from_reader(file).unwrap();
+        let config: TemplateConfig = serde_json::from_reader(file).unwrap();
 
-        Template { ..config }
+        Template {
+            name: config.name,
+            author: config.author,
+            description: config.description,
+            version: config.version,
+            path: path.clone(),
+            initialise_git: fs::exists(path::absolute(format!("{}/{}", &path, ".git")).unwrap())
+                .unwrap(),
+        }
     }
 
-    pub fn load_config(&self, config_name: String) -> Template {
-        let resolved_path = format!("{}/{}", &self.path, config_name);
+    pub fn get_config(config_path: String, config_name: String) -> TemplateConfig {
+        let resolved_path = format!("{}/{}", &config_path, config_name);
         let config_exists = fs::exists(&resolved_path).unwrap();
 
         if !config_exists {
-            println!("{}, {}", &resolved_path, &self.path);
             let mut file = fs::File::create_new(&resolved_path).unwrap();
             file.write_all(
                 format!(
@@ -47,10 +78,13 @@ impl Template {
 "name": "{}",
 "version": "1.0.0",
 "author": "",
-"description": ""
+"description": "",
+"workspaces": [],
+"actions": {{ "install": "" }},
+"pipelines": {{}}
 }}
         "#,
-                    &self.path.split("/").last().unwrap()
+                    &resolved_path.split("/").last().unwrap()
                 )
                 .as_bytes(),
             )
@@ -58,8 +92,12 @@ impl Template {
         }
 
         let file = fs::File::open(&resolved_path).unwrap();
-        let config: Template = serde_json::from_reader(file).unwrap();
+        let config: TemplateConfig = serde_json::from_reader(file).unwrap();
 
         config
+    }
+
+    pub fn load_config(&self, config_name: String) -> TemplateConfig {
+        Template::get_config(self.path.clone(), config_name)
     }
 }
