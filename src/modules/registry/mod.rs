@@ -33,7 +33,7 @@ impl Registry {
 
         let constants = get_constants();
 
-        let _ = template.create_config(constants.myra_config_name);
+        let _ = template.create_config(constants.myra_config_name, None);
 
         if template.initialise_git {
             GitRepo::init(Some(template.path.as_str()), None);
