@@ -12,14 +12,26 @@ pub fn print_action(action: &str, message: &str) {
     );
 }
 
-pub fn print_success_text(message: &str) {
-    println!(
-        "\n{} {}\n",
-        style("✔").green().bright(),
-        style(message).green()
-    );
+pub fn print_list_item(indicator: &str, item: &str) {
+    println!("{} {}", style(indicator).dim(), item);
 }
 
-pub fn print_error_text(message: &str) {
-    println!("\n{} {}\n", style("✖").red().bright(), style(message).red());
+pub fn print_success_text(message: &str, disable_new_line: bool) {
+    if disable_new_line {
+        println!("{} {}", style("✔").green().bright(), style(message).green());
+    } else {
+        println!(
+            "\n{} {}\n",
+            style("✔").green().bright(),
+            style(message).green()
+        );
+    }
+}
+
+pub fn print_error_text(message: &str, disable_new_line: bool) {
+    if disable_new_line {
+        println!("{} {}", style("✖").red().bright(), style(message).red());
+    } else {
+        println!("\n{} {}\n", style("✖").red().bright(), style(message).red());
+    }
 }
