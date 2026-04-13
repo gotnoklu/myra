@@ -1,7 +1,7 @@
 use std::{
     fs,
     path::{self, PathBuf},
-    process::{self},
+    process::{self, exit},
     time::Duration,
 };
 
@@ -13,6 +13,7 @@ use indicatif::ProgressBar;
 use crate::modules::{core::cli_theme::CliTheme, registry::types::Registry};
 use crate::{
     core::file_system::{copy_fs_objects, create_empty_directory},
+    core::printer::{print_action, print_blocked_text, print_error_text, print_success_text},
     modules::core::get_constants,
     modules::template::types::Template,
 };
@@ -22,7 +23,7 @@ pub fn register_project_cli_args() -> Command {
         .about("Commands for the project resource")
         .subcommand(
             Command::new("add")
-                .about("Creates a new template")
+                .about("Creates a new project")
                 .arg(
                     Arg::new("template")
                         .short('t')
@@ -31,9 +32,8 @@ pub fn register_project_cli_args() -> Command {
                 )
                 .arg(
                     Arg::new("name")
-                        .short('n')
-                        .long("name")
-                        .help("The name of the project to be created"),
+                        .help("The name of the project to be created")
+                        .index(1),
                 )
                 .arg(
                     Arg::new("description")
@@ -48,6 +48,12 @@ pub fn register_project_cli_args() -> Command {
                         .help("The version of the project"),
                 )
                 .arg(
+                    Arg::new("destination")
+                        .short('o')
+                        .long("dest")
+                        .help("Where to create the project"),
+                )
+                .arg(
                     Arg::new("init_git_repo")
                         .short('g')
                         .long("git")
@@ -59,17 +65,46 @@ pub fn register_project_cli_args() -> Command {
         .subcommand(
             Command::new("rm").about("Removes an existing project").arg(
                 Arg::new("name")
-                    .short('n')
-                    .long("name")
-                    .help("The name of the project to be deleted"),
+                    .help("The name of the project to be deleted")
+                    .index(1),
             ),
         )
-        .subcommand(Command::new("list").about("Lists all projects"))
+        .subcommand(Command::new("ls").about("Lists all projects"))
 }
 
 pub fn match_project_cli_args(matches: &ArgMatches) {
     if let Some(matched) = matches.subcommand_matches("add") {
-        handle_create_new_project(&matched);
+        handle_create_new_project(&matched)
+    }
+    if let Some(matched) = matches.subcommand_matches("rm") {
+        handle_remove_project(&matched)
+    }
+}
+
+pub fn handle_remove_project(matches: &ArgMatches) {
+    print_blocked_text("myra", "Remove project");
+
+    let project_path = if let Some(name) = matches.get_one::<String>("name") {
+        name
+    } else {
+        print_error_text("The project to be removed was not found.", true);
+        exit(0)
+    };
+
+    if fs::exists(&project_path).unwrap() {
+        print_action(
+            "REMOVE",
+            &format!("Project '{}' found. Removing...", project_path).as_str(),
+        );
+        fs::remove_dir_all(&project_path).unwrap();
+
+        print_success_text("The project was removed successfully.", false);
+    } else {
+        print_error_text(
+            &format!("The project '{}' was not found. Exiting...", project_path).as_str(),
+            true,
+        );
+        exit(0)
     }
 }
 
@@ -89,7 +124,7 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
         &input.to_string()
     };
 
-    let supplied_project_path = if let Some(output) = matches.get_one::<String>("output") {
+    let supplied_project_path = if let Some(output) = matches.get_one::<String>("destination") {
         output
     } else {
         let input: String = Input::with_theme(&CliTheme::default())
