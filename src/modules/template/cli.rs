@@ -1,15 +1,18 @@
-use super::types::Template;
 use crate::core::file_system::copy_fs_objects;
 use crate::core::printer::{
     print_action, print_blocked_text, print_error_text, print_list_item, print_success_text,
 };
-use crate::modules::core::{cli_theme::CliTheme, get_constants};
-use crate::modules::registry::types::Registry;
+use crate::modules::{
+    cli::theme::CliTheme, constants::Constants, registry::config::Registry,
+    template::config::Template,
+};
 use clap::{Arg, ArgMatches, Command, builder::BoolValueParser};
 use dialoguer::{Input, Select};
 use std::process::exit;
-use std::thread::current;
-use std::{env, fs, path};
+use std::{
+    env, fs,
+    path::{self, Path},
+};
 
 pub fn register_template_cli_args() -> Command {
     Command::new("templates")
@@ -89,7 +92,15 @@ pub fn register_template_cli_args() -> Command {
                         .index(2),
                 ),
         )
-        .subcommand(Command::new("ls").about("Lists all templates"))
+        .subcommand(
+            Command::new("ls")
+                .about("Lists all templates in a registry")
+                .arg(
+                    Arg::new("registry")
+                        .help("The name of the registry")
+                        .index(1),
+                ),
+        )
 }
 
 pub fn match_template_cli_args(matches: &ArgMatches) {
@@ -105,13 +116,13 @@ pub fn match_template_cli_args(matches: &ArgMatches) {
     if let Some(matched) = matches.subcommand_matches("rm") {
         handle_remove_template(&matched)
     }
-    if matches.subcommand_matches("ls").is_some() {
-        handle_list_templates()
+    if let Some(matched) = matches.subcommand_matches("ls") {
+        handle_list_templates(&matched)
     }
 }
 
 pub fn handle_init_template_config() {
-    let constants = get_constants();
+    let constants = Constants::get_all();
 
     let current_dir = env::current_dir().unwrap();
 
@@ -129,49 +140,71 @@ pub fn handle_init_template_config() {
         initialise_git: false,
     };
 
-    match template.create_config(constants.myra_config_name, None) {
+    match template.create_config(constants.config_name, None) {
         Ok(_) => (),
         Err(_) => print_error_text("The template config was not created.", false),
     };
 }
 
-pub fn handle_list_templates() {
-    let constants = get_constants();
-
+pub fn handle_list_templates(matches: &ArgMatches) {
     print_blocked_text("myra", "List templates");
 
-    let mut position = 1;
-    for entry in fs::read_dir(constants.myra_templates_dir).unwrap() {
-        let entry = entry.unwrap();
-        let object_type = entry.file_type().unwrap();
-
-        if object_type.is_dir() {
-            print_list_item(
-                &format!("{}.", position.to_string().as_str()),
-                entry.file_name().to_str().unwrap(),
-            );
-
-            position += 1;
-        }
-    }
-
-    if position == 1 {
-        print_success_text("No templates found.", true);
+    let registry_name = if let Some(name) = matches.get_one::<String>("registry") {
+        name
     } else {
-        print_success_text("Templates listed.", false);
+        print_error_text("The registry was not supplied.", true);
+        exit(0)
+    };
+
+    let templates = Registry::get(registry_name).get_all_templates();
+
+    if templates.len() == 0 {
+        return print_success_text("No templates found.", true);
     }
+
+    let mut position = 1;
+    for template in templates {
+        print_list_item(
+            &format!("{}.", position.to_string().as_str()),
+            &template.name,
+        );
+        position += 1;
+    }
+
+    print_success_text("Templates listed.", false);
 }
 
 pub fn handle_copy_template(matches: &ArgMatches) {
-    let constants = get_constants();
-
     print_blocked_text("myra", "Copy template");
 
     let mut template_name = String::new();
 
-    let template_path = if let Some(name) = matches.get_one::<String>("name") {
-        template_name = name.clone();
-        format!("{}/{}", constants.myra_templates_dir, name)
+    let template_path: String = if let Some(name) = matches.get_one::<String>("name") {
+        let path_parts: Vec<&str> = name.split("/").collect();
+
+        if path_parts.len() > 2 {
+            print_error_text("Invalid template supplied.", true);
+            exit(0)
+        } else if path_parts.len() == 2 {
+            template_name = path_parts[0].to_string();
+
+            let registry = Registry::get(path_parts[0]);
+            Path::join(Path::new(&registry.path), Path::new(path_parts[1]))
+                .to_str()
+                .unwrap()
+                .to_string()
+        } else if path_parts.len() == 1 {
+            template_name = name.clone();
+            let default_registry = Registry::get_default();
+
+            Path::join(Path::new(&default_registry.path), Path::new(path_parts[0]))
+                .to_str()
+                .unwrap()
+                .to_string()
+        } else {
+            print_error_text("Invalid template supplied.", true);
+            exit(0)
+        }
     } else {
         print_error_text("The template to be removed was not found", true);
         exit(0)
@@ -189,13 +222,13 @@ pub fn handle_copy_template(matches: &ArgMatches) {
         &format!("Copying '{}' into '{}'...", template_name, destination).as_str(),
     );
 
-    let _ = copy_fs_objects(template_path, destination, &vec![]);
+    let _ = copy_fs_objects(template_path, destination, None);
 
     print_success_text("The template was copied successfully.", false);
 }
 
 pub fn handle_remove_template(matches: &ArgMatches) {
-    let constants = get_constants();
+    let constants = Constants::get_all();
 
     print_blocked_text("myra", "Remove template");
 
@@ -227,7 +260,7 @@ pub fn handle_remove_template(matches: &ArgMatches) {
 }
 
 pub fn handle_create_new_template(matches: &ArgMatches) {
-    let constants = get_constants();
+    let constants = Constants::get_all();
 
     print_blocked_text("myra", "Create a new template");
 
@@ -242,13 +275,13 @@ pub fn handle_create_new_template(matches: &ArgMatches) {
 
         let config = Template::get_config(
             env::current_dir().unwrap().to_str().unwrap().to_string(),
-            constants.myra_config_name,
+            constants.config_name,
         );
 
         let _ = copy_fs_objects(
             &current_path,
             format!("{}/{}", constants.myra_templates_dir, &config.name),
-            &vec![],
+            None,
         );
 
         return print_success_text("Template created!", false);
