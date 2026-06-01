@@ -10,12 +10,13 @@ use console::{Emoji, style};
 use dialoguer::{Input, Select};
 use indicatif::ProgressBar;
 
-use crate::modules::{core::cli_theme::CliTheme, registry::types::Registry};
+use crate::modules::{
+    cli::theme::CliTheme, constants::Constants, registry::config::Registry,
+    template::config::Template,
+};
 use crate::{
-    core::file_system::{copy_fs_objects, create_empty_directory},
+    core::file_system::copy_fs_objects,
     core::printer::{print_action, print_blocked_text, print_error_text, print_success_text},
-    modules::core::get_constants,
-    modules::template::types::Template,
 };
 
 pub fn register_project_cli_args() -> Command {
@@ -109,7 +110,7 @@ pub fn handle_remove_project(matches: &ArgMatches) {
 }
 
 pub fn handle_create_new_project(matches: &ArgMatches) {
-    let constants = get_constants();
+    let constants = Constants::get_all();
 
     let project_name = if let Some(name) = matches.get_one::<String>("name") {
         name
@@ -178,11 +179,11 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
         } else {
             let template_config = Template::load_config(
                 &Template::new(template_name, &template_path),
-                constants.myra_config_name,
+                constants.config_name,
             );
 
             // Copy the files if the template already exists in the templates source folder
-            let copy_result = copy_fs_objects(template_path, &project_path, &vec![]);
+            let copy_result = copy_fs_objects(template_path, &project_path, None);
             if copy_result.is_err() {
                 eprintln!("Something bad happened while creating the project.",);
                 process::exit(1);
@@ -257,11 +258,11 @@ pub fn handle_create_new_project(matches: &ArgMatches) {
 
                 let template_config = Template::load_config(
                     &Template::new(&registered_templates[selection].name, &template_source),
-                    constants.myra_config_name,
+                    constants.config_name,
                 );
 
                 // Copy the files if the template already exists in the templates source folder
-                let copy_result = copy_fs_objects(&template_source, &project_path, &vec![]);
+                let copy_result = copy_fs_objects(&template_source, &project_path, None);
 
                 // if copy_result.is_err() {
                 //     eprintln!("Something bad happened while creating the project.",);
