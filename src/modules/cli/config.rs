@@ -11,9 +11,11 @@ pub fn register_cli_args() -> ArgMatches {
 }
 
 pub fn match_cli_args(matches: &ArgMatches) {
-    if let Some(matched) = matches.subcommand_matches("templates") {
+    if let Some(matched) = matches.subcommand_matches("registry") {
         match_template_cli_args(&matched)
-    } else if let Some(matched) = matches.subcommand_matches("projects") {
+    } else if let Some(matched) = matches.subcommand_matches("template") {
+        match_template_cli_args(&matched)
+    } else if let Some(matched) = matches.subcommand_matches("project") {
         match_project_cli_args(&matched)
     }
 }
